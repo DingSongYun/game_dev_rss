@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}游戏开发RSS聚合器{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+            --light-bg: #f8f9fa;
+            --dark-text: #2c3e50;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .category-badge {
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .category-unreal { background-color: #e74c3c; color: white; }
+        .category-unity { background-color: #2c3e50; color: white; }
+        .category-gamedev { background-color: #27ae60; color: white; }
+        .category-graphics { background-color: #9b59b6; color: white; }
+        .category-physics { background-color: #f39c12; color: white; }
+        .category-animation { background-color: #1abc9c; color: white; }
+        .category-engine { background-color: #34495e; color: white; }
+        .category-ai { background-color: #e67e22; color: white; }
+        .category-performance { background-color: #95a5a6; color: white; }
+        .category-vr { background-color: #8e44ad; color: white; }
+        .category-blog { background-color: #16a085; color: white; }
+
+        .article-meta {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .search-container {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .pagination .page-link {
+            border-radius: 10px;
+            margin: 0 2px;
+            border: none;
+            color: var(--primary-color);
+        }
+
+        .pagination .page-item.active .page-link {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            border: none;
+        }
+
+        .alert {
+            border-radius: 15px;
+            border: none;
+        }
+
+        .loading-spinner {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .summary-box {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-left: 4px solid var(--secondary-color);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .summary-icon {
+            color: var(--secondary-color);
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-gamepad me-2"></i>游戏开发RSS聚合器
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>首页
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('sources') }}">
+                            <i class="fas fa-rss me-1"></i>RSS源管理
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="d-flex">
+                    <button class="btn btn-outline-light me-2" onclick="fetchNow()">
+                        <i class="fas fa-sync-alt me-1"></i>立即抓取
+                    </button>
+                    <button class="btn btn-outline-light me-2" onclick="markAllRead()">
+                        <i class="fas fa-check-double me-1"></i>全部已读
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="clearAllData()">
+                        <i class="fas fa-trash-alt me-1"></i>清除数据
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <main class="container mt-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 立即抓取RSS
+        function fetchNow() {
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>测试中...';
+            btn.disabled = true;
+            
+            // 先测试基本连接
+            console.log('开始测试网络连接...');
+            fetch('/test', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => {
+                    console.log('测试响应状态:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`测试请求失败 (${response.status})`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('测试响应数据:', data);
+                    if (data.success) {
+                        // 测试成功，现在执行真正的抓取
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>抓取中...';
+                        showToast('开始抓取RSS源，这可能需要几分钟时间...', 'info');
+                        return actualFetch();
+                    } else {
+                        throw new Error('测试失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('测试或抓取错误:', error);
+                    showToast('连接测试失败：' + error.message, 'error');
+                })
+                .finally(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            
+            function actualFetch() {
+                console.log('开始实际抓取...');
+                
+                // 创建一个带超时的fetch请求 - 增加到3分钟
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    controller.abort();
+                    showToast('抓取超时，但可能仍在后台进行。请稍后刷新页面查看结果。', 'warning');
+                }, 180000); // 3分钟超时
+                
+                return fetch('/fetch_now', { 
+                    method: 'POST',
+                    signal: controller.signal,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(response => {
+                        clearTimeout(timeoutId);
+                        console.log('抓取响应状态:', response.status);
+                        
+                        if (!response.ok) {
+                            if (response.status === 408) {
+                                throw new Error('服务器处理超时，但抓取可能仍在进行');
+                            } else if (response.status >= 500) {
+                                throw new Error('服务器内部错误，请稍后再试');
+                            } else {
+                                throw new Error(`请求失败 (${response.status})`);
+                            }
+                        }
+                        
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('抓取响应数据:', data);
+                        if (data.success) {
+                            showToast(data.message || '抓取完成！', 'success');
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            showToast('抓取失败：' + (data.message || '未知错误'), 'error');
+                        }
+                    })
+                    .catch(error => {
+                        clearTimeout(timeoutId);
+                        
+                        if (error.name === 'AbortError') {
+                            // 请求被取消（超时）
+                            return;
+                        }
+                        
+                        console.error('抓取错误:', error);
+                        
+                        let errorMessage = '抓取失败';
+                        if (error.message.includes('Failed to fetch')) {
+                            errorMessage = '网络连接失败或请求被中止。抓取可能仍在后台进行，请稍后刷新页面查看结果。';
+                        } else if (error.message.includes('timeout') || error.message.includes('超时')) {
+                            errorMessage = '请求超时，但抓取可能仍在后台进行。请稍后刷新页面查看结果。';
+                        } else {
+                            errorMessage = '抓取失败：' + error.message;
+                        }
+                        
+                        showToast(errorMessage, 'warning');
+                    });
+            }
+        }
+
+        // 标记文章为已读
+        function markAsRead(articleId) {
+            fetch(`/mark_read/${articleId}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const badge = document.querySelector(`[onclick="markAsRead(${articleId})"]`)
+                            ?.closest('.card')?.querySelector('.badge');
+                        if (badge) badge.remove();
+                    }
+                });
+        }
+
+        // 标记所有文章为已读
+        function markAllRead() {
+            if (confirm('确定要将所有文章标记为已读吗？')) {
+                fetch('/mark_all_read', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('所有文章已标记为已读', 'success');
+                            setTimeout(() => location.reload(), 1000);
+                        }
+                    });
+            }
+        }
+
+        // 清除所有数据
+        function clearAllData() {
+            if (confirm('⚠️ 警告：此操作将删除所有文章和已读记录，且无法恢复！\n\n确定要继续吗？')) {
+                if (confirm('🔴 最后确认：您真的要清除所有数据吗？\n\n点击"确定"将永久删除所有文章数据。')) {
+                    const btn = event.target.closest('button');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>清除中...';
+                    btn.disabled = true;
+                    
+                    fetch('/clear_data', { method: 'POST' })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                showToast(data.message || '数据清除完成！', 'success');
+                                setTimeout(() => location.reload(), 2000);
+                            } else {
+                                showToast('清除失败：' + (data.message || '未知错误'), 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('清除数据错误:', error);
+                            showToast('清除数据失败：' + error.message, 'error');
+                        })
+                        .finally(() => {
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        });
+                }
+            }
+        }
+
+        // 显示提示消息
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container') || createToastContainer();
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            container.style.zIndex = '1055';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加淡入动画
+            document.querySelectorAll('.card').forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('fade-in');
+                }, index * 100);
+            });
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

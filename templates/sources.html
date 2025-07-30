@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}RSS源管理 - Unreal Engine & 游戏开发 RSS聚合器{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-rss me-2"></i>RSS源管理</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSourceModal">
+                <i class="fas fa-plus me-1"></i>添加RSS源
+            </button>
+        </div>
+
+        {% if sources %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>名称</th>
+                        <th>分类</th>
+                        <th>状态</th>
+                        <th>最后更新</th>
+                        <th>文章数量</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for source in sources %}
+                    <tr>
+                        <td>
+                            <strong>{{ source.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ source.url }}</small>
+                        </td>
+                        <td>
+                            <span class="badge" 
+                                  style="background-color: {% if source.category == 'unreal_engine' %}#0066cc{% elif source.category == 'unity' %}#000000{% else %}#28a745{% endif %}">
+                                {{ source.category.replace('_', ' ').title() }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if source.active %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check me-1"></i>活跃
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="fas fa-pause me-1"></i>暂停
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if source.last_updated %}
+                            <small>{{ source.last_updated.strftime('%Y-%m-%d %H:%M') }}</small>
+                            {% else %}
+                            <small class="text-muted">从未更新</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ source.articles|length }}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <form method="POST" action="{{ url_for('toggle_source', source_id=source.id) }}" class="d-inline">
+                                    <button type="submit" class="btn {% if source.active %}btn-warning{% else %}btn-success{% endif %}" 
+                                            title="{% if source.active %}暂停{% else %}启用{% endif %}">
+                                        <i class="fas {% if source.active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                                    </button>
+                                </form>
+                                <button class="btn btn-danger" 
+                                        onclick="confirmDelete({{ source.id }}, '{{ source.name }}')"
+                                        title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-rss fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">暂无RSS源</h4>
+            <p class="text-muted">点击上方按钮添加你的第一个RSS源</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>推荐RSS源</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="fw-bold">🎮 游戏引擎</h6>
+                    <ul class="list-unstyled small">
+                        <li>• Unreal Engine Blog</li>
+                        <li>• Unity Blog & ML-Agents</li>
+                        <li>• Godot Engine News</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold">🎨 图形编程</h6>
+                    <ul class="list-unstyled small">
+                        <li>• Real-Time Rendering</li>
+                        <li>• Graphics Programming Weekly</li>
+                        <li>• Advances in Real-Time Rendering</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold">⚡ 物理仿真</h6>
+                    <ul class="list-unstyled small">
+                        <li>• Bullet Physics</li>
+                        <li>• NVIDIA PhysX</li>
+                        <li>• 物理引擎技术分享</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold">🎬 动画技术</h6>
+                    <ul class="list-unstyled small">
+                        <li>• Animation Mentor Blog</li>
+                        <li>• Blender News</li>
+                        <li>• 角色动画技术</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold">🏗️ 引擎架构</h6>
+                    <ul class="list-unstyled small">
+                        <li>• Game Engine Architecture</li>
+                        <li>• Molecular Musings</li>
+                        <li>• 引擎设计模式</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold">🚀 性能优化</h6>
+                    <ul class="list-unstyled small">
+                        <li>• Intel Game Dev</li>
+                        <li>• AMD GPUOpen</li>
+                        <li>• 渲染优化技术</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold">🥽 VR/AR技术</h6>
+                    <ul class="list-unstyled small">
+                        <li>• Oculus Developer Blog</li>
+                        <li>• Unity XR</li>
+                        <li>• 沉浸式体验开发</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <h6 class="fw-bold">🧠 AI/机器学习</h6>
+                    <ul class="list-unstyled small">
+                        <li>• Unity ML-Agents</li>
+                        <li>• Game AI Pro</li>
+                        <li>• 智能NPC技术</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加RSS源模态框 -->
+<div class="modal fade" id="addSourceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>添加RSS源
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_source') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="sourceName" class="form-label">名称 *</label>
+                        <input type="text" class="form-control" id="sourceName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sourceUrl" class="form-label">RSS URL *</label>
+                        <input type="url" class="form-control" id="sourceUrl" name="url" required>
+                        <div class="form-text">请输入完整的RSS feed URL</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="sourceCategory" class="form-label">分类</label>
+                        <select class="form-select" id="sourceCategory" name="category">
+                            <option value="general">通用</option>
+                            <option value="unreal_engine">Unreal Engine</option>
+                            <option value="unity">Unity</option>
+                            <option value="game_engines">游戏引擎</option>
+                            <option value="game_development">游戏开发</option>
+                            <option value="indie_development">独立游戏开发</option>
+                            <option value="graphics_programming">图形编程</option>
+                            <option value="physics_simulation">物理仿真</option>
+                            <option value="animation">动画技术</option>
+                            <option value="engine_architecture">引擎架构</option>
+                            <option value="ai_ml">AI/机器学习</option>
+                            <option value="performance">性能优化</option>
+                            <option value="vr_ar">VR/AR技术</option>
+                            <option value="technical_blogs">技术博客</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>确认删除
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除RSS源 "<span id="deleteSourceName"></span>" 吗？</p>
+                <p class="text-muted small">此操作将同时删除该源的所有文章，且无法恢复。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <form id="deleteForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(sourceId, sourceName) {
+    document.getElementById('deleteSourceName').textContent = sourceName;
+    document.getElementById('deleteForm').action = `/delete_source/${sourceId}`;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

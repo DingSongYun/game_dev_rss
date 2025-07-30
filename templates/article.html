@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} - Unreal Engine & 游戏开发 RSS聚合器{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">首页</a></li>
+                <li class="breadcrumb-item active">文章详情</li>
+            </ol>
+        </nav>
+
+        <article class="card">
+            <div class="card-header">
+                <h1 class="h3 mb-3">{{ article.title }}</h1>
+                <div class="article-meta d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge" 
+                              style="background-color: {% if article.source.category == 'unreal_engine' %}#0066cc{% elif article.source.category == 'unity' %}#000000{% else %}#28a745{% endif %}">
+                            {{ article.source.category.replace('_', ' ').title() }}
+                        </span>
+                        <small class="ms-2">
+                            <i class="fas fa-rss me-1"></i>{{ article.source.name }}
+                        </small>
+                        {% if article.author %}
+                        <small class="ms-2">
+                            <i class="fas fa-user me-1"></i>{{ article.author }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    <small>
+                        {% if article.published_date %}
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ article.published_date.strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                {% if article.summary %}
+                <div class="alert alert-primary border-start border-primary border-3 mb-4">
+                    <h6 class="fw-bold text-primary mb-2">
+                        <i class="fas fa-robot me-2"></i>智能摘要
+                    </h6>
+                    <p class="mb-0">{{ article.summary }}</p>
+                </div>
+                {% endif %}
+
+                {% if article.description %}
+                <div class="alert alert-light">
+                    <h6 class="fw-bold">原文摘要</h6>
+                    <p class="mb-0">{{ article.description }}</p>
+                </div>
+                {% endif %}
+
+                {% if article.content %}
+                <div class="content">
+                    {{ article.content|safe }}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-external-link-alt fa-2x text-muted mb-3"></i>
+                    <p class="text-muted">点击下方按钮查看完整文章内容</p>
+                </div>
+                {% endif %}
+
+                {% if article.tags %}
+                <div class="mt-4">
+                    <h6 class="fw-bold">标签</h6>
+                    {% for tag in article.tags.split(',') %}
+                    <span class="badge bg-light text-dark me-1">#{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="card-footer">
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ article.url }}" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt me-1"></i>阅读原文
+                    </a>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm me-2" onclick="shareArticle()">
+                            <i class="fas fa-share me-1"></i>分享
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>返回列表
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function shareArticle() {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ article.title }}',
+            url: '{{ article.url }}'
+        });
+    } else {
+        // 复制链接到剪贴板
+        navigator.clipboard.writeText('{{ article.url }}').then(function() {
+            alert('链接已复制到剪贴板');
+        });
+    }
+}
+</script>
+{% endblock %}

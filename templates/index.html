@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- 侧边栏 -->
+    <div class="col-md-3">
+        <div class="sidebar">
+            <!-- 搜索框 -->
+            <form method="GET" class="mb-4">
+                <div class="input-group">
+                    <input type="text" class="form-control search-box" name="search" 
+                           placeholder="搜索文章..." value="{{ search }}">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                {% if category %}
+                    <input type="hidden" name="category" value="{{ category }}">
+                {% endif %}
+            </form>
+
+            <!-- 分类过滤 -->
+            <h6 class="fw-bold mb-3">
+                <i class="fas fa-filter me-2"></i>分类筛选
+            </h6>
+            <div class="list-group list-group-flush">
+                <a href="{{ url_for('index') }}" 
+                   class="list-group-item list-group-item-action {% if not current_category %}active{% endif %}">
+                    <i class="fas fa-globe me-2"></i>全部
+                </a>
+                {% for cat, count in categories %}
+                <a href="{{ url_for('index', category=cat) }}" 
+                   class="list-group-item list-group-item-action {% if current_category == cat %}active{% endif %}">
+                    <i class="fas fa-tag me-2"></i>
+                    {{ cat.replace('_', ' ').title() }}
+                    <span class="badge bg-secondary float-end">{{ count }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="col-md-9">
+        {% if search %}
+        <div class="alert alert-info">
+            <i class="fas fa-search me-2"></i>
+            搜索 "{{ search }}" 的结果，共找到 {{ articles.total }} 篇文章
+        </div>
+        {% endif %}
+
+        {% if current_category %}
+        <div class="alert alert-primary">
+            <i class="fas fa-filter me-2"></i>
+            分类: {{ current_category.replace('_', ' ').title() }}
+        </div>
+        {% endif %}
+
+        <!-- 文章列表 -->
+        <div class="row">
+            {% for article in articles.items %}
+            <div class="col-12 mb-4">
+                <div class="card h-100 {% if article.read_status %}opacity-75{% endif %}" 
+                     data-article-id="{{ article.id }}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title">
+                                <a href="{{ article.url }}" target="_blank" 
+                                   class="text-decoration-none text-dark"
+                                   onclick="markAsRead({{ article.id }})">
+                                    {{ article.title }}
+                                </a>
+                            </h5>
+                            {% if not article.read_status %}
+                            <span class="badge bg-primary">新</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 显示AI生成的摘要 -->
+                        {% if article.summary %}
+                        <div class="alert alert-light border-start border-primary border-3 mb-3">
+                            <h6 class="fw-bold text-primary mb-2">
+                                <i class="fas fa-robot me-1"></i>智能摘要
+                            </h6>
+                            <div class="summary-content">
+                                {% set summary_lines = article.summary.split('\n') %}
+                                {% for line in summary_lines %}
+                                    {% if line.strip() %}
+                                        {% if line.startswith('**') and line.endswith('**') %}
+                                            <h6 class="fw-bold text-dark mt-2 mb-1">{{ line[2:-2] }}</h6>
+                                        {% elif line.startswith('- ') %}
+                                            <div class="ms-3 mb-1">
+                                                <i class="fas fa-chevron-right text-primary me-2" style="font-size: 0.8em;"></i>
+                                                <span class="text-muted">{{ line[2:] }}</span>
+                                            </div>
+                                        {% elif line.startswith('• ') %}
+                                            <div class="ms-3 mb-1">
+                                                <i class="fas fa-circle text-primary me-2" style="font-size: 0.5em;"></i>
+                                                <span class="text-muted">{{ line[2:] }}</span>
+                                            </div>
+                                        {% elif line.strip().endswith(':') %}
+                                            <div class="fw-semibold text-secondary mt-2 mb-1">{{ line }}</div>
+                                        {% else %}
+                                            <p class="mb-1 text-muted">{{ line }}</p>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- 原始描述作为备选 -->
+                        {% if article.description and not article.summary %}
+                        <p class="card-text text-muted">{{ article.description[:200] }}...</p>
+                        {% endif %}
+                        
+                        <div class="article-meta d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge category-badge" 
+                                      style="background-color: {% if article.source.category == 'unreal_engine' %}#0066cc{% elif article.source.category == 'unity' %}#000000{% else %}#28a745{% endif %}">
+                                    {{ article.source.category.replace('_', ' ').title() }}
+                                </span>
+                                <small class="ms-2">
+                                    <i class="fas fa-rss me-1"></i>{{ article.source.name }}
+                                </small>
+                                {% if article.author %}
+                                <small class="ms-2">
+                                    <i class="fas fa-user me-1"></i>{{ article.author }}
+                                </small>
+                                {% endif %}
+                            </div>
+                            <small>
+                                {% if article.published_date %}
+                                <i class="fas fa-calendar me-1"></i>
+                                {{ article.published_date.strftime('%Y-%m-%d %H:%M') }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        
+                        {% if article.tags %}
+                        <div class="mt-2">
+                            {% for tag in article.tags.split(',')[:3] %}
+                            <span class="badge bg-light text-dark me-1">#{{ tag.strip() }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ article.url }}" target="_blank" 
+                               class="btn btn-primary btn-sm"
+                               onclick="markAsRead({{ article.id }})">
+                                <i class="fas fa-external-link-alt me-1"></i>阅读原文
+                            </a>
+                            <button class="btn btn-outline-secondary btn-sm" 
+                                    onclick="markAsRead({{ article.id }})">
+                                <i class="fas fa-check me-1"></i>标记已读
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 分页 -->
+        {% if articles.pages > 1 %}
+        <nav aria-label="文章分页">
+            <ul class="pagination justify-content-center">
+                {% if articles.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('index', page=articles.prev_num, category=current_category, search=search) }}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in articles.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != articles.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('index', page=page_num, category=current_category, search=search) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if articles.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('index', page=articles.next_num, category=current_category, search=search) }}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% if not articles.items %}
+        <div class="text-center py-5">
+            <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">暂无文章</h4>
+            <p class="text-muted">请添加RSS源或等待文章抓取完成</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
